@@ -57,7 +57,7 @@ jobs:
           az acr login --name ${{ vars.AZURE_ACR_NAME }}
         
           IMAGE=${{ vars.AZURE_ACR_NAME }}.azurecr.io/nextjs:${{ github.sha }}
-          docker build -f app-examples/Dockerfile -t $IMAGE .
+          docker build -f app/Dockerfile -t $IMAGE .
           docker push $IMAGE
 
       - name: Deploy candidate, test, and shift traffic
