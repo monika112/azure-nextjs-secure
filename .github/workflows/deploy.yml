@@ -1,0 +1,63 @@
+name: Deploy Next.js blue-green
+
+on:
+  workflow_dispatch:
+    inputs:
+      canary_percent:
+        description: "Candidate traffic percentage; use 0 for immediate blue/green promotion"
+        required: true
+        default: "0"
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: nextjs-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # The runner must have VNet connectivity and private DNS resolution for ACR
+    # pushes and candidate-label smoke tests. Use an ephemeral Azure runner.
+    runs-on: [self-hosted, linux, azure-vnet]
+    environment: production
+
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
+      CONTAINER_APP_ENVIRONMENT: ${{ vars.AZURE_CONTAINER_APP_ENVIRONMENT }}
+      ACR_LOGIN_SERVER: ${{ vars.AZURE_ACR_LOGIN_SERVER }}
+      RELEASE_ID: ${{ github.sha }}
+      CANARY_PERCENT: ${{ inputs.canary_percent || '0' }}
+      SMOKE_PATH: /api/health/ready
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set immutable release values
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA:0:12}"
+          echo "RELEASE_ID=$short_sha" >> "$GITHUB_ENV"
+          echo "IMAGE=${ACR_LOGIN_SERVER}/nextjs:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Build and push image
+        shell: bash
+        run: |
+          az acr login --name "${ACR_LOGIN_SERVER%%.*}"
+          docker build --pull --tag "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy candidate, test, and shift traffic
+        shell: bash
+        run: ./scripts/deploy-blue-green.sh

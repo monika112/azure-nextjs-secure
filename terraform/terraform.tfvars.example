@@ -1,0 +1,18 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus2"
+project         = "nextweb"
+environment     = "prod"
+
+min_replicas = 2
+max_replicas = 10
+
+# After adding these endpoints to the app, use:
+# liveness_probe_path  = "/api/health/live"
+# readiness_probe_path = "/api/health/ready"
+
+tags = {
+  managed-by  = "terraform"
+  workload    = "nextjs"
+  owner       = "platform-team"
+  cost-center = "replace-me"
+}

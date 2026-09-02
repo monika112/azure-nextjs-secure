@@ -1,0 +1,9 @@
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "replacewithuniquestateaccount"
+    container_name       = "tfstate"
+    key                  = "nextjs/prod.tfstate"
+    use_azuread_auth     = true
+  }
+}
