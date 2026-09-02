@@ -1,4 +1,4 @@
-subscription_id = "00000000-0000-0000-0000-000000000000"
+subscription_id = "dd0500ca-c7d3-42c6-a391-9389ca0e2848"
 location        = "eastus2"
 project         = "nextweb"
 environment     = "prod"

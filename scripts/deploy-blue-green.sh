@@ -99,7 +99,7 @@ if [[ "$revision_found" != "true" ]]; then
   exit 1
 fi
 
-echo "Moving '$candidate_label' label to '$revision_name' non-interactively..."
+echo "Moving '$candidate_label' label to candidate revision '$revision_name' non-interactively..."
 az containerapp revision label add \
   --resource-group "$RESOURCE_GROUP" \
   --name "$CONTAINER_APP" \

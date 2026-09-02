@@ -92,7 +92,7 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "main" {
     priority                       = 100
     type                           = "RateLimitRule"
     action                         = "Block"
-    rate_limit_duration_in_minutes = 1
+    rate_limit_duration_in_minutes = 1az containerapp show  --name ca-nextweb-prod --resource-group rg-nextweb-prod  --query properties.configuration.ingress.fqdn  --output tsv
     rate_limit_threshold           = 1000
 
     match_condition {
