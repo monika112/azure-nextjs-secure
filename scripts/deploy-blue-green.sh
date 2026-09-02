@@ -99,7 +99,7 @@ if [[ "$revision_found" != "true" ]]; then
   exit 1
 fi
 
-echo "Moving '$candidate_label' label to candidate revision '$revision_name' non-interactively..."
+echo "Assigning '$candidate_label' label to candidate revision '$revision_name' non-interactively..."
 az containerapp revision label add \
   --resource-group "$RESOURCE_GROUP" \
   --name "$CONTAINER_APP" \
@@ -121,6 +121,7 @@ echo "Waiting for Azure Container Apps to report the candidate revision healthy.
 candidate_ready=false
 
 for ((attempt=1; attempt<=REVISION_WAIT_ATTEMPTS; attempt++)); do
+
   revision_state="$(
     az containerapp revision show \
       --resource-group "$RESOURCE_GROUP" \
@@ -131,13 +132,19 @@ for ((attempt=1; attempt<=REVISION_WAIT_ATTEMPTS; attempt++)); do
       "${az_args[@]}" 2>/dev/null || true
   )"
 
-  provisioning_state="$(awk -F '\t' '{print $1}' <<< "$revision_state")"
-  running_state="$(awk -F '\t' '{print $2}' <<< "$revision_state")"
-  health_state="$(awk -F '\t' '{print $3}' <<< "$revision_state")"
-  replicas="$(awk -F '\t' '{print $4}' <<< "$revision_state")"
-  provisioning_error="$(awk -F '\t' '{print $5}' <<< "$revision_state")"
+  if [[ -z "$revision_state" ]]; then
+    echo "Candidate state ($attempt/$REVISION_WAIT_ATTEMPTS): revision information not available yet."
+    sleep "$REVISION_WAIT_SECONDS"
+    continue
+  fi
 
-  replicas="${replicas:-0}"
+  mapfile -t revision_fields <<< "$revision_state"
+
+  provisioning_state="${revision_fields[0]:-}"
+  running_state="${revision_fields[1]:-}"
+  health_state="${revision_fields[2]:-}"
+  replicas="${revision_fields[3]:-0}"
+  provisioning_error="${revision_fields[4]:-}"
 
   echo "Candidate state ($attempt/$REVISION_WAIT_ATTEMPTS): provisioning=${provisioning_state:-unknown}, running=${running_state:-unknown}, health=${health_state:-unknown}, replicas=$replicas"
 
@@ -145,28 +152,24 @@ for ((attempt=1; attempt<=REVISION_WAIT_ATTEMPTS; attempt++)); do
      [[ "$running_state" == "Failed" ]] || \
      [[ "$running_state" == "Degraded" ]] || \
      [[ "$health_state" == "Unhealthy" ]]; then
+
     echo "::error::Candidate revision failed validation." >&2
+
     if [[ -n "$provisioning_error" && "$provisioning_error" != "None" ]]; then
       echo "Provisioning error: $provisioning_error" >&2
     fi
-
-    az containerapp revision show \
-      --resource-group "$RESOURCE_GROUP" \
-      --name "$CONTAINER_APP" \
-      --revision "$revision_name" \
-      --output table \
-      "${az_args[@]}" || true
 
     echo "Production remains on '$stable_label' at 100%." >&2
     exit 1
   fi
 
-  # Prefer explicit health. Running + at least one replica is accepted as a
-  # fallback because healthState can temporarily be None while ARM catches up.
   if [[ "$provisioning_state" == "Provisioned" ]] && \
-     { [[ "$health_state" == "Healthy" ]] || \
-       { [[ "$running_state" == "Running" ]] && (( replicas > 0 )); }; }; then
+     [[ "$running_state" == "Running" ]] && \
+     [[ "$health_state" == "Healthy" ]] && \
+     (( replicas > 0 )); then
+
     candidate_ready=true
+    echo "Candidate revision '$revision_name' is healthy."
     break
   fi
 
@@ -176,14 +179,6 @@ done
 if [[ "$candidate_ready" != "true" ]]; then
   echo "::error::Candidate '$revision_name' did not become healthy in time." >&2
   echo "Production remains on '$stable_label' at 100%." >&2
-
-  az containerapp revision show \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$CONTAINER_APP" \
-    --revision "$revision_name" \
-    --output table \
-    "${az_args[@]}" || true
-
   exit 1
 fi
 
