@@ -22,7 +22,7 @@ jobs:
   deploy:
     # The runner must have VNet connectivity and private DNS resolution for ACR
     # pushes and candidate-label smoke tests. Use an ephemeral Azure runner.
-    runs-on: [self-hosted, linux, azure-vnet]
+    runs-on: [ubuntu-latest]
     environment: production
 
     env:
