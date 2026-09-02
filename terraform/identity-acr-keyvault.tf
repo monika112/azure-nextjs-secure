@@ -13,7 +13,7 @@ resource "azurerm_container_registry" "main" {
   location                      = azurerm_resource_group.main.location
   sku                           = "Premium"
   admin_enabled                 = false
-  public_network_access_enabled = false
+  public_network_access_enabled = true
   anonymous_pull_enabled        = false
   data_endpoint_enabled         = true
   tags                          = local.tags
