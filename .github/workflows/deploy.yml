@@ -41,7 +41,14 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
+
+      - name: Set immutable release values
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA:0:12}"
+          echo "RELEASE_ID=$short_sha" >> "$GITHUB_ENV"
+          echo "IMAGE=${{ vars.AZURE_ACR_NAME }}.azurecr.io/nextjs:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
       - name: Build and push image
         shell: bash
         working-directory: ./app
