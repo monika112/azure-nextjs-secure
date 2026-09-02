@@ -53,11 +53,12 @@ jobs:
 
       - name: Build and push image
         shell: bash
+        working-directory: ./app
         run: |
           az acr login --name ${{ vars.AZURE_ACR_NAME }}
         
           IMAGE=${{ vars.AZURE_ACR_NAME }}.azurecr.io/nextjs:${{ github.sha }}
-          docker build -f app/Dockerfile -t $IMAGE .
+          docker build  -t $IMAGE .
           docker push $IMAGE
 
       - name: Deploy candidate, test, and shift traffic
