@@ -80,28 +80,8 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "main" {
     action  = "Block"
   }
 
-  managed_rule {
-    type    = "BotManagerRuleSet"
-    version = "1.1"
-    action  = "Block"
-  }
+  
 
-  custom_rule {
-    name                           = "GlobalRateLimit"
-    enabled                        = true
-    priority                       = 100
-    type                           = "RateLimitRule"
-    action                         = "Block"
-    rate_limit_duration_in_minutes = 1az containerapp show  --name ca-nextweb-prod --resource-group rg-nextweb-prod  --query properties.configuration.ingress.fqdn  --output tsv
-    rate_limit_threshold           = 1000
-
-    match_condition {
-      match_variable     = "RemoteAddr"
-      operator           = "IPMatch"
-      negation_condition = false
-      match_values       = ["0.0.0.0/0", "::/0"]
-    }
-  }
 }
 
 resource "azurerm_cdn_frontdoor_security_policy" "main" {

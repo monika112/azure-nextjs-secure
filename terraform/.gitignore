@@ -4,3 +4,7 @@
 *.tfstate.*
 crash.log
 crash.*.log
+*.tfstate
+*.tfstate.*
+.terraform/
+.DS_Store
